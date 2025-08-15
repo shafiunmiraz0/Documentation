@@ -1,0 +1,113 @@
+# ConfigMap: pgcrypto init script
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-init
+  namespace: postgresql-pgcrypto
+data:
+  init.sql: |
+    CREATE EXTENSION IF NOT EXISTS pgcrypto;
+
+---
+
+# Deployment: PostgreSQL
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres
+  namespace: postgresql-pgcrypto
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      securityContext:
+        fsGroup: 999
+      containers:
+      - name: postgres
+        image: postgres:17.5
+        env:
+        - name: POSTGRES_DB
+          value: pg-crypto
+        - name: POSTGRES_USER
+          value: postgres
+        - name: POSTGRES_PASSWORD
+          value: Bdy5FD4f7Up#bis
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        - name: init-sql
+          mountPath: /docker-entrypoint-initdb.d/init.sql
+          subPath: init.sql
+      volumes:
+      - name: postgres-storage
+        persistentVolumeClaim:
+          claimName: postgres-pvc          # <‑‑ use the PVC, not NFS directly
+      - name: init-sql
+        configMap:
+          name: postgres-init
+
+---
+
+# Service: PostgreSQL NodePort
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: postgresql-pgcrypto
+spec:
+  selector:
+    app: postgres
+  type: NodePort
+  ports:
+    - name: postgres
+      protocol: TCP
+      port: 5432
+      targetPort: 5432
+      nodePort: 30232  # Make sure this port is available
+
+---
+# 1) PersistentVolume – cluster‑scoped (no namespace field)
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv
+  labels:
+    app: postgres
+spec:
+  capacity:
+    storage: 200Gi            # ≤ actual size of your ZFS dataset
+  accessModes:
+    - ReadWriteMany           # NFS supports multi‑node reads/writes
+  storageClassName: nfs-postgres-zfs   # any name; keep consistent with PVC
+  persistentVolumeReclaimPolicy: Retain
+  volumeMode: Filesystem
+  nfs:
+    server: 192.168.60.15
+    path: /mnt/k8s_nfs/postgres_pg
+  mountOptions:
+    - vers=4
+    - nolock
+
+---
+# 2) PersistentVolumeClaim – namespaced
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+  namespace: postgresql-pgcrypto
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: nfs-postgres-zfs
+  resources:
+    requests:
+      storage: 200Gi          # must be ≤ PV capacity
+  volumeName: postgres-pv     # binds PVC to our static PV
