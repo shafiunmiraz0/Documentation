@@ -1,0 +1,247 @@
+= Kubernetes Cluster Upgrades: A Comprehensive Study Guide (Self-Hosted Edition)
+:toc:
+:toclevels: 3
+:icons: font
+:sectnums:
+
+== I. Core Concepts & Importance
+
+=== What is a Kubernetes Cluster Upgrade?
+The process of updating a Kubernetes cluster to a newer version, involving updates to:
+- Control plane components (`kube-apiserver`, `kube-scheduler`, `kube-controller-manager`, `etcd`)
+- Data plane components (`kubelet`, `kube-proxy`, container runtime)
+- Associated add-ons (CNI, CSI, metrics server, ingress controllers)
+
+=== Why are Upgrades Important?
+- *Staying Supported*: Kubernetes supports only the latest three minor releases (e.g., 1.32, 1.31, 1.30).
+- *Security*: Patches address critical vulnerabilities in core and dependency components.
+- *New Features & Improvements*: Gain access to latest APIs, performance improvements, and bug fixes.
+- *Common Task*: Production-grade clusters often require upgrades every 3–4 months.
+- *Irreversibility*: Downgrades are not supported; rollback requires backups/restores.
+- *Zero Downtime*: Carefully planned rolling upgrades ensure workloads stay online.
+- *Self-Managed Responsibility*: In self-hosted clusters, *you* handle HA, DR, and scheduling of upgrades.
+
+image::Mind Map.png[]
+
+== II. Prerequisites for a Kubernetes Cluster Upgrade
+
+=== Cordoning Nodes (Recommended)
+- Prevents new workloads from scheduling on nodes during upgrade.
+- Keeps existing workloads running until drained.
+- Reduces risk of workload disruption.
+
+=== Reviewing Release Notes / Change Log
+- Identify deprecated APIs, behavior changes, and security fixes.
+- Check compatibility for CNIs, CSIs, and other add-ons.
+- Skipping may lead to workload failures after upgrade.
+
+=== Testing in Lower Environments (Mandatory)
+- Upgrade sequence: Dev → Staging → Pre-prod → Prod.
+- Allow 1–2 weeks between environments for observation.
+- Reduces production downtime risk.
+
+=== Version Synchronisation
+- kubelet version must be <= control plane version (within one minor release).
+- etcd version must be compatible with the target Kubernetes version.
+- CNI and CSI plugins must support the new version.
+
+=== Available IP Addresses
+- Ensure IP space for replacement or additional nodes during rolling upgrades.
+
+=== Understanding Your Cluster
+- List all installed controllers, custom resources, and add-ons.
+- Identify manual integrations that may need reconfiguration.
+
+=== Backup & Recovery Readiness
+- Take full *etcd* backup (`etcdctl snapshot save`) before upgrading.
+- Backup manifests, Helm releases, and storage configurations.
+
+== III. Kubernetes Cluster Upgrade Process (Self-Hosted)
+
+=== Step 1: Control Plane Upgrade
+- Upgrade master/control plane nodes one at a time.
+- Update binaries (`kubeadm`, `kubectl`, `kubelet`) in correct sequence.
+- Run `kubeadm upgrade plan` to check version compatibility.
+- Apply upgrade: `kubeadm upgrade apply <version>`.
+- Upgrade etcd if required.
+
+=== Step 2: Worker Node Upgrade
+- Cordon node: `kubectl cordon <node>`
+- Drain workloads: `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data`
+- Upgrade `kubeadm`, `kubelet`, container runtime.
+- Restart services and uncordon node.
+
+=== Step 3: Add-ons Upgrade
+- Upgrade core add-ons: `kube-proxy`, DNS (CoreDNS), metrics-server.
+- Upgrade third-party CNIs/CSIs: Calico, Cilium, Flannel, Rook, etc.
+- Validate compatibility before deployment.
+
+== IV. Post-Upgrade Verification & Troubleshooting
+
+=== Verification
+- Run functional and end-to-end tests.
+- Check `kubectl get nodes` for correct versions and `Ready` status.
+- Review logs in `kube-apiserver`, `etcd`, `kubelet` for errors.
+
+=== Troubleshooting
+- If a node fails upgrade, re-run upgrade steps after ensuring binary compatibility.
+- Use etcd snapshot restore for severe failures.
+
+== V. Key Tools & Technologies
+- kubeadm, kubectl, kubelet
+- etcdctl for database snapshots
+- Helm for add-on and app management
+- Systemd for service control
+- Backup tools: Velero, restic
+
+== VI. Related Questions
+
+=== Instructions
+Answer each question in 2–3 sentences.
+
+1. What is the primary reason Kubernetes cluster upgrades are common in self-hosted environments?
+2. Why is reviewing release notes critical before an upgrade?
+3. Why must upgrades be tested in lower environments first?
+4. What does "zero downtime" mean in a self-hosted upgrade?
+5. Why must control plane and node versions be closely aligned?
+6. What is the kubelet's role during upgrades?
+7. What is unique about self-hosted upgrades compared to managed services?
+8. Outline the three primary steps in a kubeadm-based upgrade.
+9. What is a "rolling update" for worker nodes?
+10. How do you verify a successful upgrade in a self-hosted cluster?
+
+== VII. Answer
+
+1. Without vendor automation, self-hosted clusters require proactive upgrades to maintain security, stability, and feature parity.
+2. Release notes contain API deprecations and compatibility information that prevents post-upgrade workload failures.
+3. Testing in non-production reduces the risk of outages since self-hosted clusters lack managed rollback features.
+4. Zero downtime means services remain online by upgrading nodes sequentially with proper draining.
+5. Control plane and node version compatibility ensures stability and prevents API/kubelet mismatches.
+6. The kubelet manages pods and node state; version mismatches can prevent workloads from running.
+7. In self-hosted upgrades, operators handle HA, backups, and recovery — tasks automated in cloud services.
+8. Control plane upgrade → Worker node upgrade → Add-on upgrade.
+9. Rolling updates upgrade nodes one at a time while keeping workloads available.
+10. Verify via `kubectl get nodes`, logs, and end-to-end workload testing.= Kubernetes Cluster Upgrades: A Comprehensive Study Guide (Self-Hosted Edition)
+:toc:
+:toclevels: 3
+:icons: font
+:sectnums:
+
+== I. Core Concepts & Importance
+
+=== What is a Kubernetes Cluster Upgrade?
+The process of updating a Kubernetes cluster to a newer version, involving updates to:
+- Control plane components (`kube-apiserver`, `kube-scheduler`, `kube-controller-manager`, `etcd`)
+- Data plane components (`kubelet`, `kube-proxy`, container runtime)
+- Associated add-ons (CNI, CSI, metrics server, ingress controllers)
+
+=== Why are Upgrades Important?
+- *Staying Supported*: Kubernetes supports only the latest three minor releases (e.g., 1.32, 1.31, 1.30).
+- *Security*: Patches address critical vulnerabilities in core and dependency components.
+- *New Features & Improvements*: Gain access to latest APIs, performance improvements, and bug fixes.
+- *Common Task*: Production-grade clusters often require upgrades every 3–4 months.
+- *Irreversibility*: Downgrades are not supported; rollback requires backups/restores.
+- *Zero Downtime*: Carefully planned rolling upgrades ensure workloads stay online.
+- *Self-Managed Responsibility*: In self-hosted clusters, *you* handle HA, DR, and scheduling of upgrades.
+
+image::Mind Map.png[]
+
+== II. Prerequisites for a Kubernetes Cluster Upgrade
+
+=== Cordoning Nodes (Recommended)
+- Prevents new workloads from scheduling on nodes during upgrade.
+- Keeps existing workloads running until drained.
+- Reduces risk of workload disruption.
+
+=== Reviewing Release Notes / Change Log
+- Identify deprecated APIs, behavior changes, and security fixes.
+- Check compatibility for CNIs, CSIs, and other add-ons.
+- Skipping may lead to workload failures after upgrade.
+
+=== Testing in Lower Environments (Mandatory)
+- Upgrade sequence: Dev → Staging → Pre-prod → Prod.
+- Allow 1–2 weeks between environments for observation.
+- Reduces production downtime risk.
+
+=== Version Synchronisation
+- kubelet version must be <= control plane version (within one minor release).
+- etcd version must be compatible with the target Kubernetes version.
+- CNI and CSI plugins must support the new version.
+
+=== Available IP Addresses
+- Ensure IP space for replacement or additional nodes during rolling upgrades.
+
+=== Understanding Your Cluster
+- List all installed controllers, custom resources, and add-ons.
+- Identify manual integrations that may need reconfiguration.
+
+=== Backup & Recovery Readiness
+- Take full *etcd* backup (`etcdctl snapshot save`) before upgrading.
+- Backup manifests, Helm releases, and storage configurations.
+
+== III. Kubernetes Cluster Upgrade Process (Self-Hosted)
+
+=== Step 1: Control Plane Upgrade
+- Upgrade master/control plane nodes one at a time.
+- Update binaries (`kubeadm`, `kubectl`, `kubelet`) in correct sequence.
+- Run `kubeadm upgrade plan` to check version compatibility.
+- Apply upgrade: `kubeadm upgrade apply <version>`.
+- Upgrade etcd if required.
+
+=== Step 2: Worker Node Upgrade
+- Cordon node: `kubectl cordon <node>`
+- Drain workloads: `kubectl drain <node> --ignore-daemonsets --delete-emptydir-data`
+- Upgrade `kubeadm`, `kubelet`, container runtime.
+- Restart services and uncordon node.
+
+=== Step 3: Add-ons Upgrade
+- Upgrade core add-ons: `kube-proxy`, DNS (CoreDNS), metrics-server.
+- Upgrade third-party CNIs/CSIs: Calico, Cilium, Flannel, Rook, etc.
+- Validate compatibility before deployment.
+
+== IV. Post-Upgrade Verification & Troubleshooting
+
+=== Verification
+- Run functional and end-to-end tests.
+- Check `kubectl get nodes` for correct versions and `Ready` status.
+- Review logs in `kube-apiserver`, `etcd`, `kubelet` for errors.
+
+=== Troubleshooting
+- If a node fails upgrade, re-run upgrade steps after ensuring binary compatibility.
+- Use etcd snapshot restore for severe failures.
+
+== V. Key Tools & Technologies
+- kubeadm, kubectl, kubelet
+- etcdctl for database snapshots
+- Helm for add-on and app management
+- Systemd for service control
+- Backup tools: Velero, restic
+
+== VI. Related Questions
+
+=== Instructions
+Answer each question in 2–3 sentences.
+
+1. What is the primary reason Kubernetes cluster upgrades are common in self-hosted environments?
+2. Why is reviewing release notes critical before an upgrade?
+3. Why must upgrades be tested in lower environments first?
+4. What does "zero downtime" mean in a self-hosted upgrade?
+5. Why must control plane and node versions be closely aligned?
+6. What is the kubelet's role during upgrades?
+7. What is unique about self-hosted upgrades compared to managed services?
+8. Outline the three primary steps in a kubeadm-based upgrade.
+9. What is a "rolling update" for worker nodes?
+10. How do you verify a successful upgrade in a self-hosted cluster?
+
+== VII. Answer
+
+1. Without vendor automation, self-hosted clusters require proactive upgrades to maintain security, stability, and feature parity.
+2. Release notes contain API deprecations and compatibility information that prevents post-upgrade workload failures.
+3. Testing in non-production reduces the risk of outages since self-hosted clusters lack managed rollback features.
+4. Zero downtime means services remain online by upgrading nodes sequentially with proper draining.
+5. Control plane and node version compatibility ensures stability and prevents API/kubelet mismatches.
+6. The kubelet manages pods and node state; version mismatches can prevent workloads from running.
+7. In self-hosted upgrades, operators handle HA, backups, and recovery — tasks automated in cloud services.
+8. Control plane upgrade → Worker node upgrade → Add-on upgrade.
+9. Rolling updates upgrade nodes one at a time while keeping workloads available.
+10. Verify via `kubectl get nodes`, logs, and end-to-end workload testing.
