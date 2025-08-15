@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: falco-config
+  namespace: default
+data:
+  falco.yaml: |
+    # Falco configuration file
+    # This file contains the configuration for the Falco service.
+
+    # Rules files
+    rules_file:
+      - /etc/falco/falco_rules.yaml
+      - /etc/falco/falco_rules.local.yaml
+
+    # Outputs
+    json_output: true
+    json_include_output_property: true
+
+    # Logging
+    log_level: info
+    log_stderr: true
+    log_syslog: true
+
+    # Other settings
+    priority: debug
+    buffered_outputs: false
