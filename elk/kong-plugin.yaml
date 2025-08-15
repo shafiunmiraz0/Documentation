@@ -1,0 +1,14 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongClusterPlugin
+metadata:
+  name: kong-tcp-log-global
+  namespace: <namespace>
+  annotations:
+    kubernetes.io/ingress.class: kong
+  labels:
+    global: "true"
+config: 
+  host: <logstashservicename.namespace>
+  port: 5044
+  timeout: 10000
+plugin: tcp-log

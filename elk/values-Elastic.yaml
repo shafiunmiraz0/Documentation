@@ -1,0 +1,14 @@
+replicas: 1
+minimumMasterNodes: 1
+
+volumeClaimTemplate:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 5Gi
+
+secret:
+  password: "2hnrjZ16Np23U7uu"
+
+# nodeSelector:
+#   kubernetes.io/hostname: node-hostname

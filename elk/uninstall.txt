@@ -1,0 +1,51 @@
+#!/bin/bash
+set -e
+
+NAMESPACE="elk"
+RELEASE="elk-kibana"
+
+echo "=== 1. Uninstall Helm release (no hooks) ==="
+helm uninstall $RELEASE -n $NAMESPACE --no-hooks || true
+
+echo "=== 2. Force delete all Kibana-related resources in namespace: $NAMESPACE ==="
+kubectl get all,cm,secret,ingress,pvc,sa,job -n $NAMESPACE \
+  | grep kibana \
+  | awk '{print $1}' \
+  | while read r; do
+      echo "Deleting $r ..."
+      kubectl delete -n $NAMESPACE $r --force --grace-period=0 || true
+    done
+
+echo "=== 3. Delete any Kibana-related roles and bindings in the namespace ==="
+kubectl get role,rolebinding -n $NAMESPACE \
+  | grep kibana \
+  | awk '{print $1}' \
+  | while read r; do
+      echo "Deleting $r ..."
+      kubectl delete -n $NAMESPACE $r || true
+    done
+
+echo "=== 4. Delete Kibana-related clusterroles and clusterrolebindings ==="
+kubectl get clusterrole,clusterrolebinding \
+  | grep kibana \
+  | awk '{print $1}' \
+  | while read r; do
+      echo "Deleting $r ..."
+      kubectl delete $r || true
+    done
+
+echo "=== 5. Delete any Kibana-related CRDs ==="
+kubectl get crd \
+  | grep kibana \
+  | awk '{print $1}' \
+  | while read crd; do
+      echo "Deleting CRD: $crd ..."
+      kubectl delete crd $crd || true
+    done
+
+echo "=== 6. Delete Helm release secrets (if any) ==="
+kubectl delete secret -n $NAMESPACE -l name=$RELEASE || true
+
+echo "=== 7. Verify cleanup ==="
+kubectl get all,role,rolebinding -n $NAMESPACE | grep kibana || echo "✅ No Kibana resources remain."
+kubectl get clusterrole,clusterrolebinding | grep kibana || echo "✅ No Kibana cluster-wide roles remain."

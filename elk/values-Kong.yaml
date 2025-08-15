@@ -1,0 +1,32 @@
+gateway:
+  env:
+    nginx_proxy_proxy_buffer_size: "128k"
+    nginx_proxy_proxy_buffers: "4 128k"
+    nginx_proxy_proxy_busy_buffers_size: "256k"
+    header: "off"
+    untrusted_lua_sandbox_requires: "resty.template, kong.tools.utils, resty.http, cjson, resty.openidc"
+    admin_listen: "0.0.0.0:8001, 0.0.0.0:8444 http2 ssl"
+    proxy_listen: "0.0.0.0:8000, 0.0.0.0:8443 http2 ssl"
+    status_listen: "0.0.0.0:8100"
+
+  proxy:
+    http:
+      enabled: true
+      addresses:
+        - "0.0.0.0:8000"
+    tls:
+      enabled: true
+      addresses:
+        - "0.0.0.0:8443"
+      parameters:
+        - "http2"
+      nodePort: 30555
+
+  admin:
+    http:
+      enabled: true
+
+status:
+  enabled: true
+  http:
+    enabled: true

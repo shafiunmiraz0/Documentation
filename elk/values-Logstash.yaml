@@ -1,0 +1,48 @@
+persistence:
+  enabled: false
+logstashConfig:
+  logstash.yml: |
+    http.host: 0.0.0.0
+
+logstashPipeline:
+  logstash.conf: |
+    input {
+      tcp {
+        port => 5044
+        type => syslog
+      }
+    }
+
+    filter {
+      json {
+        source => "message"
+        add_tag => ["elk-kong"]
+      }
+      mutate {
+        remove_field => ["message"]
+      }
+    }
+
+    output {
+      # stdout { codec => rubydebug }
+      elasticsearch {
+          hosts => "https://elasticsearch-master:9200"
+          manage_template => false
+          ssl_certificate_verification => false
+          index => "kong-log-%{+YYYY.MM.dd}"
+          document_type => "%{[@metadata][type]}"
+          user=> "elastic"
+          password => "2hnrjZ16Np23U7uu"
+        }
+    }
+
+service:
+  type: ClusterIP
+  ports:
+    - name: tcp
+      port: 5044
+      protocol: TCP
+      targetPort: 5044
+
+# nodeSelector:
+#   kubernetes.io/hostname: node-hostname

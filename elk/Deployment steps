@@ -1,0 +1,51 @@
+Elasticsearch, Kibana and Logstash deployment in Kubernetes environment using helm:
+Steps: Add helm chart-
+    helm repo add elastic https://helm.elastic.co
+    helm repo update
+
+Create a pv using this yaml:
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: elk-logging-elastic-pv
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  nfs:
+    path: </path/to/location>
+    server: <NFS>
+  persistentVolumeReclaimPolicy: Retain
+  claimRef:
+    namespace: <namespace>
+    name: elasticsearch-master-elasticsearch-master-0
+    apiVersion: v1
+    kind: PersistentVolumeClaim
+---
+
+Deploy elk using this command:
+    helm install elk-elasticsearch elastic/elasticsearch -f values-elastic.yaml --namespace elk --create-namespace
+
+After successfully running elk pod deploy kibana using:
+    helm install elk-kibana elastic/kibana -f values-kibana.yaml
+
+Deploy logstash with values file:
+    helm install elk-logstash elastic/logstash -f values-logstash.yaml
+
+After running logstash service add a kong plugin applying kong-plugin.yaml
+
+
+---
+Uninstall:
+
+  helm uninstall elk-kibana -n elk --no-hooks
+  kubectl delete all -n elk -l release=elk-kibana
+  kubectl delete configmap -n elk -l release=elk-kibana
+  kubectl delete secret -n elk -l release=elk-kibana
+  helm uninstall elk-elasticsearch -n elk
+  helm uninstall elk-logstash -n elk
+
+Pod delete forcly
+  kubectl delete pod elasticsearch-master-0 -n elk --grace-period=0 --force

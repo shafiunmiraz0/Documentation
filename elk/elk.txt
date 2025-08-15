@@ -1,0 +1,10 @@
+helm repo add elastic https://helm.elastic.co
+helm repo update
+
+helm install elk-elasticsearch elastic/elasticsearch -f values-elastic.yaml --namespace elk --create-namespace
+
+
+helm install elk-kibana elastic/kibana -f values-kibana.yaml -n elk
+
+
+helm install elk-logstash elastic/logstash -f values-logstash.yaml -n elk
